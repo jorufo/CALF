@@ -1,5 +1,3 @@
-
-
 #'@import data.table
 #'@import ggplot2
 
@@ -56,22 +54,23 @@ calf <- function(data,
 #'calf(data = CaseControl, nMarkers = 6, targetVector = "binary")
 #'@export
 calf_fractional <- function(data,
-                 nMarkers,
-				 controlProportion = .8,
-				 caseProportion = .8,
-                 margin,
-                 optimize = "pval",
-                 verbose = FALSE){
-  calf_internal(data,
-                nMarkers,
-                proportion = c(controlProportion,caseProportion),
-                randomize  = FALSE,
-                targetVector = "binary",
-                times      = 1,
-                margin = NULL,
-                optimize = optimize,
-               # reverse = reverse,
-                verbose = verbose)
+                     nMarkers,
+				             controlProportion = .8,
+				             caseProportion = .8,
+                     margin,
+                     optimize = "pval",
+                     verbose = FALSE){
+  
+     calf_internal(data,
+                   nMarkers,
+                   proportion = c(controlProportion,caseProportion),
+                   randomize  = FALSE,
+                   targetVector = "binary",
+                   times      = 1,
+                   margin = NULL,
+                   optimize = optimize,
+                   # reverse = reverse,
+                   verbose = verbose)
 }
 				
 
@@ -381,7 +380,7 @@ calf_exact_binary_subset <- function(data,
 #'@param times Numeric. Indicates the number of replications to run with randomization.
 #'@param targetVector Indicate "binary" for target vector with two options (e.g., case/control). Indicate "nonbinary" for target vector with real numbers.
 #'@param optimize Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.  Defaults to pval.
-#'@param outputPath The path where files are to be written out, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the set of kept variables and the set of variables not used will be output in the kept.csv and unkept.csv files, respectively.  File "optimized[Kept/Unkept]List.txt" containts the value of the chosen optimizer variable(AUC, pval, or corr), for each run.
+#'@param outputPath The path where files are to be written out, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the set of kept variables and the set of variables not used will be output in the kept.csv and unkept.csv files, respectively.  File [auc|pval|corr][Kept/Unkept]List.txt containts the value of the chosen optimizer variable(AUC, pval, or corr), for each run.
 #'@return A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).
 #'@examples
 #'cv.calf(data = CaseControl, limit = 5, proportion = .8, times = 100, targetVector = 'binary', optimize = 'pval', outputPath=NULL)
@@ -435,6 +434,7 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
     rowCount = 1
     optimizedKeptList <- vector()
     optimizedUnkeptList <- vector()
+    correlationList <- vector()
     repeat {
       
       if (targetVector == "binary") {
@@ -456,11 +456,11 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
         unkeptData <- data[unkeptRows, ]
         
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "kept.csv")
+          outputFile <- paste(outputPath, "binaryKept.csv")
           fwrite(resampledData, outputFile)
           
           
-          outputFile <- paste(outputPath, "unkept.csv")
+          outputFile <- paste(outputPath, "binaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
@@ -473,22 +473,26 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
         unkeptData <- data[unkeptRows, ]
       
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "kept.csv")
+          outputFile <- paste(outputPath, "nonbinaryKept.csv")
           fwrite(resampledData, outputFile)
           
-          outputFile <- paste(outputPath, "unkept.csv")
+          outputFile <- paste(outputPath, "nonbinaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
       }
       
 
-      #In the future, switch this over to calf_internal.
-      answer = calf_subset(data = resampledData,
-                          nMarkers = limit,
-                          proportion = 1,
-                          targetVector = targetVector,
-                          optimize = optimize)
+      answer = calf_internal(data=resampledData,
+                             nMarkers = limit,
+                             randomize  = FALSE,
+                             proportion = ,
+                             times = 1,
+                             targetVector = targetVector,
+                             margin = NULL,
+                             optimize = optimize,
+                             #  reverse = FALSE,
+                             verbose = FALSE)
       
       
       #Keep track of the optimizer values returned for each run
@@ -504,6 +508,8 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
         optimizedKeptList <- append(optimizedKeptList, answer$finalBest)
       }
       
+      
+      #Keep a tally of the results per calf run
       markerCount = 1
       markerList = as.character(answer$selection$Marker)
       lenMarkerList = length(markerList)
@@ -520,72 +526,74 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       
       
 
-    #Perform the cross-validation
-    if (targetVector == "binary") {
-      if (optimize == "pval") {
-        header <- c("Number Selected", "AUC", "pval", colnames(data)[-1])
-        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-3])
-
-        resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-        resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
-
-        optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
-        
-      } else if (optimize == "auc"){
-        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-2])
-    
-        resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-        resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
-    
-        optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
+      #Perform the cross-validation
+      if (targetVector == "binary") {
+        if (optimize == "pval") {
+          header <- c("Number Selected", "AUC", "pval", colnames(data)[-1])
+          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-3])
+  
+          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
+          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+  
+          optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
           
+        } else if (optimize == "auc"){
+          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-2])
+      
+          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
+          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+      
+          optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
+            
+        }
+      } else if (targetVector == "nonbinary"){
+      
+        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% results[rowCount,-1:-2]
+        corrResult <- cor(weightsTimesUnkept,unkeptData[1])
+        correlationList <- append(correlationList,corrResult )
       }
-    } else if (targetVector == "nonbinary"){
-      weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-2])
-
-      #resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-      #resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
-
-      #optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
-    }
     
     
       rowCount <- rowCount + 1
-      
+        
       if (rowCount > times)
         break
-  
     }
+  
+  }
     
     
     
-    #If an outputPath was provided, then output the extra data generated by the CV
-    if(!is.null(outputPath)) {
-      #Write the results
-      if (targetVector == "binary") {
-        
-        outputFile <- paste(outputPath, "binary.csv")
-        fwrite(results, outputFile)
-        
-      } else if(targetVector == "nonbinary"){
-        
-        outputFile <- paste(outputPath, "nonbinary.csv")
-        fwrite(results, outputFile)
-        
-      }
+  #If an outputPath was provided, then output the extra data generated by the CV
+  if(!is.null(outputPath)) {
+    #Write the results
+    if (targetVector == "binary") {
       
-      print(optimizedKeptList)
-      outputFile <- paste(outputPath, "optimizedKeptList.txt")
+      outputFile <- paste(outputPath, "binary.csv")
+      fwrite(results, outputFile)
+      
+      outputFile <- paste(outputPath, paste(optimize,"KeptList.txt", sep=""))
       write(optimizedKeptList, outputFile )
       
-      print(optimizedUnkeptList)
-      outputFile <- paste(outputPath, "optimizedUnkeptList.txt")
+      outputFile <- paste(outputPath, paste(optimize,"UnkeptList.txt", sep=""))
       write(optimizedUnkeptList, outputFile )
       
+    } else if(targetVector == "nonbinary"){
+      
+      outputFile <- paste(outputPath, "nonbinary.csv")
+      fwrite(results, outputFile)
+      
+      outputFile <- paste(outputPath, "corrUnkeptList.txt")
+      write(correlationList, outputFile )
+      
     }
+    
+
+    
+  }
 
 
-    return(results)
+  return(results)
 }
 
 
@@ -768,3 +776,4 @@ write.calf_subset <- function(x, filename, ...){
   options(warn=1)
   
 }
+

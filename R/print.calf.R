@@ -82,4 +82,3 @@ print.calf_exact_binary_subset <- function(x, ...){
     
   }
 }
-
