@@ -535,7 +535,8 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
           resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
           resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
   
-          optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
+          #optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
+          optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
           
         } else if (optimize == "auc"){
           weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-2])
@@ -573,10 +574,10 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       fwrite(results, outputFile)
       
       outputFile <- paste(outputPath, paste(optimize,"KeptList.txt", sep=""))
-      write(optimizedKeptList, outputFile )
+      write(optimizedKeptList, outputFile, sep="\n")
       
-      outputFile <- paste(outputPath, paste(optimize,"UnkeptList.txt", sep=""))
-      write(optimizedUnkeptList, outputFile )
+      outputFile <- paste(outputPath, "UnkeptAUCList.txt")
+      write(optimizedUnkeptList, outputFile, sep="\n")
       
     } else if(targetVector == "nonbinary"){
       
@@ -584,7 +585,7 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       fwrite(results, outputFile)
       
       outputFile <- paste(outputPath, "corrUnkeptList.txt")
-      write(correlationList, outputFile )
+      write(correlationList, outputFile, sep="\n")
       
     }
     
