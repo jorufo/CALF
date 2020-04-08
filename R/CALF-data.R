@@ -1,11 +1,44 @@
-##
-#' Example data containing case and control data
-#'
-#' This data contains 136 marker variables for 68 individuals who are distinguished as case/control.
-#'
 #' @docType data
 #' @keywords datasets
-#' @name CaseControl
-#' @usage data(CaseControl)
-#' @format A data frame with 136 marker variables and 68 individuals.
-"CaseControl"
+#' @name CalfBin
+#' @title Example binary data for CALF algorithm
+#'
+#' @description 
+#' This data contains standardized data for 135 blood markers for 72 individuals 
+#' who are distinguished as control (\code{CalfBin$NCvC == 0}) & case 
+#' (\code{CalfBin$NCvC == 0}).
+#' 
+#' The response variable (designating case/control) is given by the first 
+#' column, \code{NCvC}.The remaining columns, (i.e. \code{M---}) are different
+#' blood markers (the predictor variables).
+#' 
+#' This data comes from the 
+#' [North American Prodrome Longitudinal Study](https://napls.ucsf.edu).
+#'
+#' @usage data(CalfBin)
+#' @format A data.table with the first column giving the response variable, 
+#' and the remaining columns giving predictor variables.
+
+NULL
+
+#' @docType data
+#' @keywords datasets
+#' @name CalfCnt
+#' @title Example continuous data for CALF algorithm
+#'
+#' @description  
+#' This data contains standardized expression for 132 miRNAs in blood for 24 
+#' people and their percentage of blood monocytes.
+#' 
+#' The response variable (fraction of monocytes) is given by the first 
+#' column, \code{mono}.The remaining columns, (i.e. \code{M---}) are different
+#' blood miRNAs (the predictor variables).
+#' 
+#' This data comes from the 
+#' [North American Prodrome Longitudinal Study](https://napls.ucsf.edu).
+#'
+#' @usage data(CalfCnt)
+#' @format A data.table with the first column giving the response variable, 
+#' and the remaining columns giving predictor variables.
+
+NULL
