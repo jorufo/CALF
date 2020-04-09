@@ -4,12 +4,12 @@
 \alias{calf}
 \title{calf}
 \usage{
-calf(y, x, maxX = ncol(x), score = "pcc", margin = NULL, verbose = FALSE)
+calf(x, y, maxX = ncol(x), score = "pcc", margin = NULL, verbose = FALSE)
 }
 \arguments{
-\item{y}{Response vector; binary or continuous.}
-
 \item{x}{Matrix or data.frame with predictor variables.}
+
+\item{y}{Response vector; binary or continuous.}
 
 \item{maxX}{Maximum number of predictors to include in the model.}
 
@@ -23,9 +23,9 @@ include an additional predictor; see details.}
 \value{
 A calf object with the following list items:
 \describe{
-  \item{\code{predInd}}{Index of selected predictors in \code{x} in the 
+  \item{\code{xInd}}{Index of selected predictors in \code{x} in the 
   order of selection}
-  \item{\code{predName}}{Name of the selected predictors in \code{x} in
+  \item{\code{xName}}{Name of the selected predictors in \code{x} in
   the order of selection}
   \item{\code{weight}}{The weight value for the selected predictors in 
   the order of selection}
@@ -53,6 +53,6 @@ Need to add lots here...
 \examples{
 
 data(CalfBin)
-calf(y = as.logical(CalfBin[[1]]), x = CalfBin[ , -1], maxX = 5)
+calf(x = CalfBin[ , -1], y = as.logical(CalfBin[[1]]), maxX = 5)
 
 }

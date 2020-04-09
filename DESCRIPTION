@@ -16,8 +16,11 @@ Authors@R:
 Maintainer: John Ford <jrford@email.unc.edu>
 Description: Greedy algorithm for coarse approximation linear functions.
 License: GPL-3
-Imports: data.table, stats
+Depends: R (>= 3.5.0), data.table
+Imports: stats
+Suggests: knitr,glmnet
 LazyData: TRUE
 RoxygenNote: 7.0.2
 NeedsCompilation: no
 Encoding: UTF-8
+VignetteBuilder: knitr

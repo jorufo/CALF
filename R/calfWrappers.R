@@ -1,8 +1,8 @@
 #' @title calf
 #' @description Coarse Approximation Linear Function
 #' 
-#' @param y Response vector; binary or continuous.
 #' @param x Matrix or data.frame with predictor variables.
+#' @param y Response vector; binary or continuous.
 #' @param maxX Maximum number of predictors to include in the model.
 #' @param score Either "auc", "pcc", or "wts"; see details for more information.
 #' @param margin Real number from 0 to 1, the required improvement in score 
@@ -12,9 +12,9 @@
 #' @return 
 #' A calf object with the following list items:
 #' \describe{
-#'   \item{\code{predInd}}{Index of selected predictors in \code{x} in the 
+#'   \item{\code{xInd}}{Index of selected predictors in \code{x} in the 
 #'   order of selection}
-#'   \item{\code{predName}}{Name of the selected predictors in \code{x} in
+#'   \item{\code{xName}}{Name of the selected predictors in \code{x} in
 #'   the order of selection}
 #'   \item{\code{weight}}{The weight value for the selected predictors in 
 #'   the order of selection}
@@ -40,19 +40,19 @@
 #' @examples
 #' 
 #' data(CalfBin)
-#' calf(y = as.logical(CalfBin[[1]]), x = CalfBin[ , -1], maxX = 5)
+#' calf(x = CalfBin[ , -1], y = as.logical(CalfBin[[1]]), maxX = 5)
 #'
 #' @export
 
-calf <- function(y,
-                 x,
+calf <- function(x,
+                 y,
                  maxX = ncol(x),
                  score = "pcc",
                  margin = NULL,
                  verbose = FALSE) {
   
-  calculateCalf(y = y,
-                x = x,
+  calculateCalf(x = x,
+                y = y,
                 maxX = maxX,
                 score = score,
                 margin = margin,
