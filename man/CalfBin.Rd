@@ -19,6 +19,6 @@ column, \code{NCvC}.The remaining columns, (i.e. \code{M---}) are different
 blood markers (the predictor variables).
 
 This data comes from the 
-[North American Prodrome Longitudinal Study](https://napls.ucsf.edu).
+\href{https://napls.ucsf.edu}{North American Prodrome Longitudinal Study}.
 }
 \keyword{datasets}

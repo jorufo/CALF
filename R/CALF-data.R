@@ -13,7 +13,7 @@
 #' blood markers (the predictor variables).
 #' 
 #' This data comes from the 
-#' [North American Prodrome Longitudinal Study](https://napls.ucsf.edu).
+#' \href{https://napls.ucsf.edu}{North American Prodrome Longitudinal Study}.
 #'
 #' @usage data(CalfBin)
 #' @format A data.table with the first column giving the response variable, 
@@ -35,7 +35,7 @@ NULL
 #' blood miRNAs (the predictor variables).
 #' 
 #' This data comes from the 
-#' [North American Prodrome Longitudinal Study](https://napls.ucsf.edu).
+#' \href{https://napls.ucsf.edu}{North American Prodrome Longitudinal Study}.
 #'
 #' @usage data(CalfCnt)
 #' @format A data.table with the first column giving the response variable, 
