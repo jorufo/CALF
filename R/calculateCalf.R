@@ -5,14 +5,12 @@ calculateCalf <- function(x, y, maxX, score, margin, verbose) {
   ## Parameter checks
   chkNum <- function(x) is.numeric(type.convert(x))
   yl <- length(y)
-  stopifnot(class(score) == "character", length(score) == 1)
-  if (!is.null(margin)) {
-    stopifnot(class(margin) == "numeric", length(margin) == 1)
-  }
-  stopifnot(class(verbose) == "logical", length(verbose) == 1)
-  stopifnot(class(maxX) == "numeric", length(maxX) == 1)
-  stopifnot(class(x) %in% c("matrix", "data.frame", "data.table"))
-  stopifnot(class(y) %in% c("logical", "numeric"))
+  stopifnot(is.character(score), length(score) == 1)
+  if (!is.null(margin)) stopifnot(is.numeric(margin), length(margin) == 1)
+  stopifnot(is.logical(verbose), length(verbose) == 1)
+  stopifnot(is.numeric(maxX), length(maxX) == 1)
+  stopifnot(is.data.frame(x) || is.matrix(x))
+  stopifnot(is.numeric(y) || is.logical(y))
   stopifnot(yl == nrow(x))
   chkNum <- function(x) is.numeric(type.convert(x))
   if (!all(apply(x, 2, chkNum))) {
