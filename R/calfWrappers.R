@@ -18,6 +18,7 @@
 #'   the order of selection}
 #'   \item{\code{weight}}{The weight value for the selected predictors in 
 #'   the order of selection}
+#'   \item{\code{finalS}}{The final best score value at the end of optimization}
 #'   \item{\code{trainVec}}{The best score value at each iteration with the
 #'   addition of the new predictor given in predInd; included to monitor
 #'   the training progress}

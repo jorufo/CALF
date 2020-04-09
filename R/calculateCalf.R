@@ -100,6 +100,7 @@ calculateCalf <- function(x, y, maxX, score, margin, verbose) {
   res <- list(xInd     = xVec,
               xName    = xNames[xVec],
               weight   = wVec,
+              finalS   = tail(na.omit(tVec), 1),
               trainVec = tVec,
               score    = score,
               maxX     = maxX,
