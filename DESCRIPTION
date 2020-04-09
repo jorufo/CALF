@@ -1,16 +1,23 @@
 Package: CALF
 Type: Package
 Title: Coarse Approximation Linear Function
-Version: 1.0.12
-Date: 2019-07-5
-Author: John Ford [aut], Stephanie Lane [aut, cre], Clark Jeffries [aut], Diana Perkins [aut]
+Version: 2.0.0
+Authors@R: 
+    c(person("John R", "Ford", role = c("cre", "aut"), 
+    email = "jorufo@gmail.com"), 
+    person("Dayne L", "Filer", role = "aut", 
+    email = "dayne.filer@gmail.com"), 
+    person("Stephanie", "Lane", role = c("aut")), 
+    person("Clark D", "Jeffries", role = "aut"), 
+    person("Diana O", "Perkins", role = "ctb"), 
+    person("Jeffry L", "Tilson", role = "ctb"), 
+    person("Kirk C", "Wilhelmsen", role = "ctb"), 
+    person("Darius M", "Bost", role = "ctb"))
 Maintainer: John Ford <jrford@email.unc.edu>
-Description: Contains greedy algorithms for coarse approximation linear functions.
-License: GPL-2
-Imports: data.table, ggplot2
+Description: Greedy algorithm for coarse approximation linear functions.
+License: GPL-3
+Imports: data.table, stats
 LazyData: TRUE
-RoxygenNote: 6.0.1
+RoxygenNote: 7.0.2
 NeedsCompilation: no
-Packaged: 2019-10-31 11:37:47 UTC; John Ford
-Repository: CRAN
-Date/Publication: 2017-05-19 15:08:51 UTC
+Encoding: UTF-8
