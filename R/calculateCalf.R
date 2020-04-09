@@ -16,8 +16,8 @@ calculateCalf <- function(x, y, maxX, score, margin, verbose) {
   if (!all(apply(x, 2, chkNum))) {
     stop("Some of the predictors in 'x' are not coercible to numeric.")
   }
-  if (!is.logical(y) & score != "mse") {
-    stop("'y' assumed continuous; 'score' must be 'mse' -- see ?calf")
+  if (!is.logical(y) & score != "pcc") {
+    stop("'y' assumed continuous; 'score' must be 'pcc' -- see ?calf")
   }
   
   sFunc <- switch(score,
