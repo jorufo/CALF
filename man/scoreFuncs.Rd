@@ -7,22 +7,22 @@
 \alias{calfScorePCC}
 \title{CALF score functions}
 \usage{
-calfScoreAUC(resp, pred)
+calfScoreAUC(x, y)
 
-calfScoreWTS(resp, pred)
+calfScoreWTS(x, y)
 
-calfScorePCC(resp, pred)
+calfScorePCC(x, y)
 }
 \arguments{
-\item{resp}{Response vector}
+\item{x}{Predictor vector}
 
-\item{pred}{Predictor vector}
+\item{y}{Response vector}
 }
 \description{
 Available CALF score functions
 }
 \details{
-\code{resp} MUST be logical for \code{calfScoreAUC} and \code{calfScoreWTS}.
+\code{y} MUST be logical for \code{calfScoreAUC} and \code{calfScoreWTS}.
 
 Can add more later...
 }

@@ -1,25 +1,25 @@
 #' @import data.table
 
-calculateCalf <- function(resp, pred, maxPred, score, margin, verbose) {
+calculateCalf <- function(x, y, maxX, score, margin, verbose) {
   
   ## Parameter checks
   chkNum <- function(x) is.numeric(type.convert(x))
-  rl <- length(resp)
+  yl <- length(y)
   stopifnot(class(score) == "character", length(score) == 1)
   if (!is.null(margin)) {
     stopifnot(class(margin) == "numeric", length(margin) == 1)
   }
   stopifnot(class(verbose) == "logical", length(verbose) == 1)
-  stopifnot(class(maxPred) == "numeric", length(maxPred) == 1)
-  stopifnot(class(pred) %in% c("matrix", "data.frame", "data.table"))
-  stopifnot(class(resp) %in% c("logical", "numeric"))
-  stopifnot(rl == nrow(pred))
+  stopifnot(class(maxX) == "numeric", length(maxX) == 1)
+  stopifnot(class(x) %in% c("matrix", "data.frame", "data.table"))
+  stopifnot(class(y) %in% c("logical", "numeric"))
+  stopifnot(yl == nrow(x))
   chkNum <- function(x) is.numeric(type.convert(x))
-  if (!all(apply(pred, 2, chkNum))) {
-    stop("Some of the predictors in 'pred' are not coercible to numeric.")
+  if (!all(apply(x, 2, chkNum))) {
+    stop("Some of the predictors in 'x' are not coercible to numeric.")
   }
-  if (!is.logical(resp) & score != "mse") {
-    stop("'resp' assumed continuous; 'score' must be 'mse' -- see ?calf")
+  if (!is.logical(y) & score != "mse") {
+    stop("'y' assumed continuous; 'score' must be 'mse' -- see ?calf")
   }
   
   sFunc <- switch(score,
@@ -38,45 +38,46 @@ calculateCalf <- function(resp, pred, maxPred, score, margin, verbose) {
     cat(msg, "\n")
   }
   
-  if (!is.data.table(pred)) pred <- as.data.table(pred)
+  hasNames <- !is.null(colnames(x))
+  if (!is.data.table(x)) x <- as.data.table(x)
   
   s <- 0
-  v <- vector("numeric", rl)
+  v <- vector("numeric", yl)
   i <- 1L
-  np <- ncol(pred)
-  pNames <- names(pred)
+  nX <- ncol(x)
+  xNames <- names(x)
   
-  nPred <- min(maxPred, np)
-  pVec <- rep(NA_integer_, length = nPred) ## store the parameter index
-  wVec <- rep(NA_integer_, length = nPred) ## store the weight
-  tVec <- rep(NA_real_,    length = nPred) ## store the score @step "training"
+  maxIter <- min(maxX, nX)
+  xVec <- rep(NA_integer_, length = maxIter) ## store the parameter index
+  wVec <- rep(NA_integer_, length = maxIter) ## store the weight
+  tVec <- rep(NA_real_,    length = maxIter) ## store the score @step "training"
   
   repeat {
     
-    sVec <- c(sapply(v + pred, sFunc, resp = resp), 
-              sapply(v - pred, sFunc, resp = resp))
+    sVec <- c(sapply(v + x, sFunc, y = y), 
+              sapply(v - x, sFunc, y = y))
     
-    newPred <- which.max(sVec)
+    newX <- which.max(sVec)
     
     ## Check if the best improvement in score surpasses the user-defined margin
-    if (!is.null(margin) && !sVec[newPred] - s > margin) break
+    if (!is.null(margin) && !sVec[newX] - s > margin) break
     
-    neg <- newPred > np
-    newPred <- newPred - np*neg
+    neg <- newX > nX
+    newX <- newX - nX*neg
     
     if (i == 1L) {
-      w <- sign(cor(pred[[newPred]], resp)) 
+      w <- sign(cor(x[[newX]], y)) 
     } else {
       w <- 1L - 2L*neg
     }
     
-    pVec[i] <- match(names(newPred), pNames)
+    xVec[i] <- match(names(newX), xNames)
     wVec[i] <- w
-    tVec[i] <- sVec[[newPred + np*neg]]
+    tVec[i] <- sVec[[newX + nX*neg]]
     
-    v <- v + w*pred[[newPred]]
-    pred[[newPred]] <- NULL
-    np <- ncol(pred)
+    v <- v + w*x[[newX]]
+    x[[newX]] <- NULL
+    nX <- ncol(x)
     s <- tVec[i]
     
     if (verbose) {
@@ -89,21 +90,21 @@ calculateCalf <- function(resp, pred, maxPred, score, margin, verbose) {
                        etime %% 3600 %/% 60,
                        etime %% 60 %/% 1)
       msg <- sprintf("%17s  %9s  %8s  %5s  %6s", 
-                     etime, i, signif(tVec[i], 5), pVec[i], wVec[i])
+                     etime, i, signif(tVec[i], 5), xVec[i], wVec[i])
       cat(msg, "\n")
     }
     
     i <- i + 1L
-    if (i > nPred) break
+    if (i > maxIter) break
     
   }
   
-  res <- list(predInd  = pVec,
-              predName = pNames[pVec],
+  res <- list(xInd     = xVec,
+              xName    = xNames[xVec],
               weight   = wVec,
               trainVec = tVec,
               score    = score,
-              maxPred  = maxPred,
+              maxX     = maxX,
               margin   = margin)
   
   class(res) <- "calf"
