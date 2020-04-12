@@ -15,5 +15,5 @@ print.calf <- function(x, ...) {
 predict.calf <- function(object, newx) {
   bvec <- rep(0, ncol(newx))
   bvec[object$xInd] <- object$weight
-  as.matrix(x) %*% bvec
+  as.matrix(newx) %*% bvec
 }
