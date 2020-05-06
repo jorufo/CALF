@@ -4,7 +4,9 @@
 \name{CaseControl}
 \alias{CaseControl}
 \title{Example data containing case and control data}
-\format{A data frame with 136 marker variables and 68 individuals.}
+\format{
+A data frame with 136 marker variables and 68 individuals.
+}
 \usage{
 data(CaseControl)
 }

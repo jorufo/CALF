@@ -4,11 +4,17 @@
 \alias{calf_fractional}
 \title{calf_fractional}
 \usage{
-calf_fractional(data, nMarkers, controlProportion = 0.8,
-  caseProportion = 0.8, margin, optimize = "pval", verbose = FALSE)
+calf_fractional(
+  data,
+  nMarkers,
+  controlProportion = 0.8,
+  caseProportion = 0.8,
+  optimize = "pval",
+  verbose = FALSE
+)
 }
 \arguments{
-\item{data}{Matrix or data frame. First column must contain case/control dummy coded variable, as function is only approprite data in where the targetVector is "binary").}
+\item{data}{Matrix or data frame. Must be binary data such that the first column must contain case/control dummy coded variable, as function is only approprite for binary data.}
 
 \item{nMarkers}{Maximum number of markers to include in creation of sum.}
 
@@ -16,22 +22,20 @@ calf_fractional(data, nMarkers, controlProportion = 0.8,
 
 \item{caseProportion}{Proportion of case samples to use, default is .8.}
 
-\item{margin}{Real number from 0 to 1. Indicates the amount a potential marker must improve the target criterion (Pearson correlation or p-value) in order to add the marker.}
-
-\item{optimize}{Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.}
+\item{optimize}{Criteria to optimize, "pval" or "auc".  Defaults to "pval".}
 
 \item{verbose}{Logical. Indicate TRUE to print activity at each iteration to console. Defaults to FALSE.}
 }
 \value{
 A data frame containing the chosen markers and their assigned weight (-1 or 1)
 
-The AUC value for the classification
+The optimal AUC or pval for the classification.
 
 rocPlot. A plot object from ggplot2 for the receiver operating curve.
 }
 \description{
-Randomly selects from the data provided, ensuring the requested proportions of case and control variables are used and runs Coarse Approximation Linear Function.
+Randomly selects from binary input provided to data parameter while ensuring the requested proportions of case and control variables are used and runs Coarse Approximation Linear Function.
 }
 \examples{
-calf(data = CaseControl, nMarkers = 6, targetVector = "binary")
+calf_fractional(data = CaseControl, nMarkers = 6, controlProportion = .8, caseProportion = .4)
 }

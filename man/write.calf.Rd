@@ -4,7 +4,7 @@
 \alias{write.calf}
 \title{write.calf}
 \usage{
-write.calf(x, filename, ...)
+write.calf(x, filename)
 }
 \arguments{
 \item{x}{A CALF data frame.}

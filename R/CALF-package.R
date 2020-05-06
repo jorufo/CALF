@@ -9,6 +9,7 @@
 #' }
 #' Maintainer: John Ford \email{jrford@@email.unc.edu}
 #' @importFrom stats t.test cor
+#' @importFrom utils write.table
 #' @import ggplot2
 #' @keywords calf
 #' @details The Coarse Approximation Linear Function (CALF) algorithm is a type of forward selection

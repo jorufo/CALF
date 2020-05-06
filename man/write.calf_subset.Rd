@@ -4,7 +4,7 @@
 \alias{write.calf_subset}
 \title{write.calf_subset}
 \usage{
-write.calf_subset(x, filename, ...)
+write.calf_subset(x, filename)
 }
 \arguments{
 \item{x}{A CALF subset data frame.}

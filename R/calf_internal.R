@@ -4,10 +4,10 @@ calf_internal <- function(data,
                           proportion = NULL,
                           times,
                           targetVector = "binary",
-                          margin = NULL,
                           optimize = "pval",
-                          #  reverse = FALSE,
                           verbose = FALSE){
+  
+  
   # getting rid of global variable warning -------------------------- #
   x = NULL
   y = NULL
@@ -158,10 +158,6 @@ calf_internal <- function(data,
     # check if the latest p is lower than the previous p               #
     continue <- ifelse(bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE), TRUE, FALSE)
     
-    if (!is.null(margin)){
-      diffCrit <- 1/min(allCrit, na.rm = TRUE) - 1/bestCrit
-      continue <- ifelse(diffCrit >= margin, TRUE, FALSE)
-    }
     
     if (continue == TRUE){
       keepMarkers  <- append(keepMarkers, names(realMarkers)[which.min(allCrit)])
@@ -221,12 +217,7 @@ calf_internal <- function(data,
       
       continue <- ifelse(bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE),
                          TRUE, FALSE)
-      
-      if (!is.null(margin)){
-        diffCrit <- 1/min(allCrit, na.rm = TRUE) - 1/bestCrit
-        continue <- ifelse(diffCrit >= margin, TRUE, FALSE)
-      }
-      
+
       if (continue == TRUE){
         keepMarkers  <- append(keepMarkers, names(realMarkers)[which.min(allCrit)])
         bestCrit     <- append(bestCrit, min(allCrit, na.rm = TRUE))
@@ -250,59 +241,6 @@ calf_internal <- function(data,
         }
       }
       
-      # NEW PRUNING PROCEDURE, tabled on 05 19 2017 ---------------------------------#
-      # drop markers one at a time, making sure that dropping that marker
-      # does not result in an improvement in the score metric
-      # if (reverse == TRUE){
-      #   storeCrits <- numeric()
-      #   for (j in 1:length(keepIndex)){
-      #     if (optimize == "pval"){
-      #       crit <- t.test(rowSums(case[ ,keepIndex]) - case[ ,keepIndex[j]],
-      #                      rowSums(ctrl[ ,keepIndex]) - ctrl[ ,keepIndex[j]],
-      #                      var.equal = FALSE)$p.value
-      #       storeCrits[j] <- crit
-      #     }
-      #
-      #     if (optimize == "auc"){
-      #       crit <- compute.auc(rowSums(case[ ,keepIndex]) - case[ ,keepIndex[j]],
-      #                           rowSums(ctrl[ ,keepIndex]) - ctrl[ ,keepIndex[j]])
-      #       crit <- 1/crit
-      #       storeCrits[j] <- crit
-      #     }
-      #
-      #     if (targetVector == "nonbinary"){
-      #       crit <- suppressWarnings(cor(real,
-      #                                    rowSums(realMarkers[ ,keepIndex], na.rm = TRUE) -
-      #                                      realMarkers[ ,keepIndex[j]] ,
-      #                                    use = "complete.obs"))
-      #       crit <- 1/crit
-      #       storeCrits[j] <- crit
-      #     }
-      #   }
-      #   # drop the marker that improved the crit when it was dropped
-      #   # drop the one that dropped it the most in the case of multiple markers
-      #   drop <- keepIndex[which.min(storeCrits[which(storeCrits < bestCrit[length(bestCrit)])])]
-      #   if (length(drop) != 0){
-      #     bestCrit                   <- bestCrit[-length(bestCrit)]
-      #     bestCrit[length(bestCrit)] <- min(storeCrits)
-      #     keepIndex                  <- keepIndex[!keepIndex %in% drop]
-      #     keepMarkers                <- keepMarkers[!keepMarkers %in% names(realMarkers)[drop]]
-      #
-      #     if (verbose == TRUE) {
-      #       if (optimize == "pval"){
-      #         cat("Dropped:", names(realMarkers)[drop],
-      #             paste0("new p value = ", round(bestCrit[length(bestCrit)], digits = 15), "\n"))
-      #       } else if (optimize == "auc"){
-      #         cat("Dropped:", names(realMarkers)[drop],
-      #             paste0("new AUC = ", round((1/bestCrit[length(bestCrit)]), digits = 15), "\n"))
-      #       } else if (targetVector == "nonbinary")
-      #         cat("Dropped:", names(realMarkers)[drop],
-      #             paste0("Correlation = ", round((1/bestCrit[length(bestCrit)]), digits = 15), "\n"))
-      #     }
-      #   }
-      #   # END PRUNING PROCEDURE ----------------------------------------------#
-      #   # stop the search when it hits the max number of markers
-      # }
       if (length(keepMarkers) == nMarkers) continue <- FALSE
     }
   }

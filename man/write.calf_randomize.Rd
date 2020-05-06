@@ -4,7 +4,7 @@
 \alias{write.calf_randomize}
 \title{write.calf_randomize}
 \usage{
-write.calf_randomize(x, filename, ...)
+write.calf_randomize(x, filename)
 }
 \arguments{
 \item{x}{A CALF randomize data frame.}

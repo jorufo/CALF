@@ -4,8 +4,15 @@
 \alias{calf_subset}
 \title{calf_subset}
 \usage{
-calf_subset(data, nMarkers, proportion = 0.8, targetVector, times = 1,
-  margin = NULL, optimize = "pval", verbose = FALSE)
+calf_subset(
+  data,
+  nMarkers,
+  proportion = 0.8,
+  targetVector,
+  times = 1,
+  optimize = "pval",
+  verbose = FALSE
+)
 }
 \arguments{
 \item{data}{Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.}
@@ -18,8 +25,6 @@ calf_subset(data, nMarkers, proportion = 0.8, targetVector, times = 1,
 
 \item{times}{Numeric. Indicates the number of replications to run with randomization.}
 
-\item{margin}{Real number from 0 to 1. Indicates the amount a potential marker must improve the target criterion (Pearson correlation or p-value) in order to add the marker.}
-
 \item{optimize}{Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.}
 
 \item{verbose}{Logical. Indicate TRUE to print activity at each iteration to console. Defaults to FALSE.}
@@ -27,12 +32,12 @@ calf_subset(data, nMarkers, proportion = 0.8, targetVector, times = 1,
 \value{
 A data frame containing the chosen markers and their assigned weight (-1 or 1)
 
-The AUC value for the classification. If multiple replications are requested, this will be a data.frame containing all AUCs across replications.
+The optimal AUC, pval, or correlation for the classification. If multiple replications are requested, a data.frame containing all optimized values across all replications is returned.
 
-aucHist A histogram of the AUCs across replications.
+aucHist A histogram of the AUCs across replications, if applicable.
 }
 \description{
-Runs Coarse Approximation Linear Function on a random subset of the data provided, such that the
+Runs Coarse Approximation Linear Function on a random subset of the data provided, resulting in the same proportion applied to case and control, when applicable.
 }
 \examples{
 calf_subset(data = CaseControl, nMarkers = 6, targetVector = "binary", times = 5)

@@ -4,8 +4,15 @@
 \alias{cv.calf}
 \title{cv.calf}
 \usage{
-cv.calf(data, limit, proportion = 0.8, times, targetVector,
-  optimize = "pval", outputPath = NULL)
+cv.calf(
+  data,
+  limit,
+  proportion = 0.8,
+  times,
+  targetVector,
+  optimize = "pval",
+  outputPath = NULL
+)
 }
 \arguments{
 \item{data}{Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.}
@@ -20,7 +27,7 @@ cv.calf(data, limit, proportion = 0.8, times, targetVector,
 
 \item{optimize}{Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.  Defaults to pval.}
 
-\item{outputPath}{The path where data is to be written out.  When targetVector is "binary" file binary.csv will be output in the provided path.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path. Default is NULL.}
+\item{outputPath}{The path where files are to be written out, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the set of kept variables and the set of variables not used, only for the last iteration, will be output in the kept.csv and unkept.csv files, respectively.  File [auc|pval|corr][Kept/Unkept]List.txt containts the value of the chosen optimizer variable(AUC, pval, or corr), for each run.}
 }
 \value{
 A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).
@@ -29,5 +36,5 @@ A data frame containing "times" rows of CALF runs where each row represents a ru
 Performs cross-validation using CALF data input
 }
 \examples{
-cv.calf(data = CaseControl, limit = 5, proportion = .8, times = 100, targetVector = 'binary', optimize = 'pval', outputPath=NULL)
+cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary', optimize = 'pval')
 }
