@@ -19,7 +19,7 @@ cv.calf(
 
 \item{limit}{Maximum number of markers to include in creation of sum.}
 
-\item{proportion}{Numeric. A value (where 0 < proportion <= 1) indicating the proportion of cases and controls to use in analysis (if targetVector = "binary"). If targetVector = "nonbinary", this is just a proportion of the full sample. Used to evaluate robustness of solution. Defaults to 0.8.}
+\item{proportion}{Numeric. A value (where 0 < proportion <= 1) indicating the proportion of cases and controls to use in analysis (if targetVector = "binary") or proportion of the full sample (if targetVector = "nonbinary"). Defaults to 0.8.}
 
 \item{times}{Numeric. Indicates the number of replications to run with randomization.}
 
@@ -36,5 +36,7 @@ A data frame containing "times" rows of CALF runs where each row represents a ru
 Performs cross-validation using CALF data input
 }
 \examples{
+\dontrun{
 cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary', optimize = 'pval')
+}
 }

@@ -32,6 +32,6 @@ propotions of data will be randomly selected from both the control data set and 
    Clark Jeffries [aut], \cr
    Diana Perkins [aut]
 }
-Maintainer: John Ford \email{jrford@email.unc.edu}
+Maintainer: John Ford \email{JoRuFo@gmail.com}
 }
 \keyword{calf}

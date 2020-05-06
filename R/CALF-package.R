@@ -7,7 +7,7 @@
 #'    Clark Jeffries [aut], \cr
 #'    Diana Perkins [aut]
 #' }
-#' Maintainer: John Ford \email{jrford@@email.unc.edu}
+#' Maintainer: John Ford \email{JoRuFo@@gmail.com}
 #' @importFrom stats t.test cor
 #' @importFrom utils write.table
 #' @import ggplot2
