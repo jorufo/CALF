@@ -19,7 +19,7 @@ cv.calf(
 
 \item{limit}{Maximum number of markers to include in creation of sum.}
 
-\item{proportion}{Numeric. A value (where 0 < proportion <= 1) indicating the proportion of cases and controls to use in analysis (if targetVector = "binary") or proportion of the full sample (if targetVector = "nonbinary"). Defaults to 0.8.}
+\item{proportion}{Numeric. A value between 0 and 1 indicating the proportion of cases and controls to use in analysis (if targetVector = "binary") or proportion of the full sample (if targetVector = "nonbinary"). Defaults to 0.8.}
 
 \item{times}{Numeric. Indicates the number of replications to run with randomization.}
 
@@ -27,7 +27,7 @@ cv.calf(
 
 \item{optimize}{Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.  Defaults to pval.}
 
-\item{outputPath}{The path where files are to be written out, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the set of kept variables and the set of variables not used, only for the last iteration, will be output in the kept.csv and unkept.csv files, respectively.  File [auc|pval|corr][Kept/Unkept]List.txt containts the value of the chosen optimizer variable(AUC, pval, or corr), for each run.}
+\item{outputPath}{The path where files are to be written as output, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the kept and unkept variables from the last iteration, will be output, prefixed with the targetVector type "binary" or "nonbinary" followed by Kept and Unkept and suffixed with .csv.  Two files containing the results from each run have List in the filenames and suffixed with .txt.}
 }
 \value{
 A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).

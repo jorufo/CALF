@@ -2,6 +2,7 @@
 #'@import ggplot2
 
 
+
 #'@title calf
 #'@description Coarse Approximation Linear Function
 #'@param data Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.
@@ -29,7 +30,6 @@ calf <- function(data,
                 optimize = optimize,
                 verbose = verbose)
 }
-
 
 
 
@@ -154,11 +154,12 @@ calf_randomize <- function(data,
 }
 
 
+
 #'@title calf_subset
 #'@description Runs Coarse Approximation Linear Function on a random subset of the data provided, resulting in the same proportion applied to case and control, when applicable.
 #'@param data Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.
 #'@param nMarkers Maximum number of markers to include in creation of sum.
-#'@param proportion Numeric. A value (where 0 < proportion <= 1) indicating the proportion of cases and controls to use in analysis (if targetVector = "binary"). If targetVector = "nonbinary", this is just a proportion of the full sample. Used to evaluate robustness of solution. Defaults to 0.8.
+#'@param proportion Numeric. A value between 0 and 1 indicating the proportion of cases and controls to use in analysis (if targetVector = "binary"). If targetVector = "nonbinary", this is just a proportion of the full sample. Used to evaluate robustness of solution. Defaults to 0.8.
 #'@param targetVector Indicate "binary" for target vector with two options (e.g., case/control). Indicate "nonbinary" for target vector with real numbers.
 #'@param times Numeric. Indicates the number of replications to run with randomization.
 #'@param optimize Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.
@@ -353,15 +354,16 @@ calf_exact_binary_subset <- function(data,
 
 
 
+
 #'@title cv.calf
 #'@description Performs cross-validation using CALF data input
 #'@param data Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.
 #'@param limit Maximum number of markers to include in creation of sum.
-#'@param proportion Numeric. A value (where 0 < proportion <= 1) indicating the proportion of cases and controls to use in analysis (if targetVector = "binary") or proportion of the full sample (if targetVector = "nonbinary"). Defaults to 0.8.
+#'@param proportion Numeric. A value between 0 and 1 indicating the proportion of cases and controls to use in analysis (if targetVector = "binary") or proportion of the full sample (if targetVector = "nonbinary"). Defaults to 0.8.
 #'@param times Numeric. Indicates the number of replications to run with randomization.
 #'@param targetVector Indicate "binary" for target vector with two options (e.g., case/control). Indicate "nonbinary" for target vector with real numbers.
 #'@param optimize Criteria to optimize if targetVector = "binary." Indicate "pval" to optimize the p-value corresponding to the t-test distinguishing case and control. Indicate "auc" to optimize the AUC.  Defaults to pval.
-#'@param outputPath The path where files are to be written out, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the set of kept variables and the set of variables not used, only for the last iteration, will be output in the kept.csv and unkept.csv files, respectively.  File [auc|pval|corr][Kept/Unkept]List.txt containts the value of the chosen optimizer variable(AUC, pval, or corr), for each run.
+#'@param outputPath The path where files are to be written as output, default is NULL meaning no files will be written.  When targetVector is "binary" file binary.csv will be output in the provided path, showing the reults.  When targetVector is "nonbinary" file nonbinary.csv will be output in the provided path, showing the results.  In the same path, the kept and unkept variables from the last iteration, will be output, prefixed with the targetVector type "binary" or "nonbinary" followed by Kept and Unkept and suffixed with .csv.  Two files containing the results from each run have List in the filenames and suffixed with .txt.
 #'@return A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).
 #'@examples
 #'\dontrun{
@@ -557,7 +559,7 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       outputFile <- paste(outputPath, paste(optimize,"KeptList.txt", sep=""))
       write(optimizedKeptList, outputFile, sep="\n")
       
-      outputFile <- paste(outputPath, "UnkeptAUCList.txt")
+      outputFile <- paste(outputPath, "AUCUnkeptList.txt")
       write(optimizedUnkeptList, outputFile, sep="\n")
       
     } else if(targetVector == "nonbinary"){
@@ -689,6 +691,7 @@ write.calf_randomize <- function(x, filename){
   options(warn=1)
   
 }
+
 
 
 
