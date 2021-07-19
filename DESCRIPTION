@@ -1,17 +1,17 @@
 Package: CALF
 Type: Package
 Title: Coarse Approximation Linear Function
-Version: 1.0.15
-Date: 2020-05-5
+Version: 1.0.16
+Date: 2021-06-14 R CMD check --as-cran
 Author: Stephanie Lane [aut, cre], John Ford [aut], Clark Jeffries [aut], Diana Perkins [aut]
 Maintainer: John Ford <JoRuFo@gmail.com>
 Description: Contains greedy algorithms for coarse approximation linear functions.
 License: GPL-2
 Imports: data.table, ggplot2
 LazyData: TRUE
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2020-05-05 08:15:35 UTC; John Ford
+Packaged: 2021-07-18 19:42:35 UTC; John Ford
 Repository: CRAN
-Date/Publication: 2020-05-05 13:04:23 UTC
+Date/Publication: 2020-07-18 19:43:23 UTC
