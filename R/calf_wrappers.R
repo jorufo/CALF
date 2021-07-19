@@ -367,7 +367,7 @@ calf_exact_binary_subset <- function(data,
 #'@return A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).
 #'@examples
 #'\dontrun{
-#'cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary', optimize = 'pval')
+#'cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary')
 #'}
 #'@export
 cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize = "pval", outputPath=NULL) {
@@ -598,7 +598,7 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
 #'@return A data frame containing "times" rows of CALF runs where each row represents a run of CALF on a randomized "proportion" of "data".  Colunns start with the numer selected for the run, followed by AUC or pval and then all markers from "data".  An entry in a marker column signifys a chosen marker for a particular run (a row) and their assigned coarse weight (-1, 0, or 1).
 #'@examples
 #'\dontrun{
-#'perm_target_cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary', optimize = 'pval')
+#'perm_target_cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary')
 #'}
 #'@export
 perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize = "pval", outputPath=NULL) {
@@ -776,7 +776,7 @@ perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVecto
         }
       } else if (targetVector == "nonbinary"){
         
-        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% as.matrix(results[rowCount,-1:-2])
+        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-2]))
         corrResult <- cor(weightsTimesUnkept,unkeptData[1])
         correlationList <- append(correlationList,corrResult )
       }

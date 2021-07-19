@@ -37,6 +37,6 @@ Performs cross-validation using CALF data input and randomizes the target column
 }
 \examples{
 \dontrun{
-perm_target_cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary', optimize = 'pval')
+perm_target_cv.calf(data = CaseControl, limit = 5, times = 100, targetVector = 'binary')
 }
 }
