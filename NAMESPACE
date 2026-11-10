@@ -16,6 +16,8 @@ export(write.calf_randomize)
 export(write.calf_subset)
 import(data.table)
 import(ggplot2)
-importFrom(stats,cor)
-importFrom(stats,t.test)
+importFrom(stats,
+  cor,
+  t.test
+)
 importFrom(utils,write.table)
