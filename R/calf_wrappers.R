@@ -1,8 +1,43 @@
+validate_cv_inputs <- function(data, limit, proportion, times, targetVector, optimize, outputPath) {
+  if (!is.data.frame(data) && !is.matrix(data))
+    stop("CALF ERROR: data must be a matrix or data frame.")
+  if (ncol(data) < 2L || nrow(data) < 6L ||
+      any(!vapply(as.data.frame(data), is.numeric, logical(1))))
+    stop("CALF ERROR: data must have numeric columns, at least one marker, and at least six rows.")
+  if (length(limit) != 1L || !is.finite(limit) || limit != as.integer(limit) ||
+      limit < 1L || limit > ncol(data) - 1L)
+    stop("CALF ERROR: limit must be an integer between 1 and the number of markers.")
+  if (length(times) != 1L || !is.finite(times) || times != as.integer(times) || times < 1L)
+    stop("CALF ERROR: times must be a positive integer.")
+  if (length(proportion) != 1L || !is.finite(proportion) || proportion <= 0 || proportion >= 1)
+    stop("CALF ERROR: proportion must be strictly between zero and one.")
+  if (length(targetVector) != 1L || !targetVector %in% c("binary", "nonbinary"))
+    stop("CALF ERROR: targetVector must be 'binary' or 'nonbinary'.")
+  allowed <- if (targetVector == "binary") c("pval", "auc") else "corr"
+  if (length(optimize) != 1L || !optimize %in% allowed)
+    stop(paste("CALF ERROR: optimize must be one of", paste(allowed, collapse = ", ")))
+  if (targetVector == "binary") {
+    if (anyNA(data[, 1]) || !all(data[, 1] %in% c(0, 1)))
+      stop("CALF ERROR: binary target must contain only 0 and 1.")
+    group_sizes <- c(sum(data[, 1] == 0), sum(data[, 1] == 1))
+    kept <- round(group_sizes * proportion)
+    if (any(kept < 2L) || any(group_sizes - kept < 2L))
+      stop("CALF ERROR: proportion must leave at least two controls and cases in both sets.")
+  } else {
+    kept <- round(nrow(data) * proportion)
+    if (kept < 3L || nrow(data) - kept < 3L)
+      stop("CALF ERROR: proportion must leave at least three rows in both sets.")
+  }
+  if (!is.null(outputPath) &&
+      (length(outputPath) != 1L || !dir.exists(outputPath)))
+    stop("CALF ERROR: outputPath must be an existing directory.")
+  invisible(TRUE)
+}
+
+
+
 #'@import data.table
 #'@import ggplot2
-
-
-
 #'@title calf
 #'@description Coarse Approximation Linear Function
 #'@param data Matrix or data frame. First column must contain case/control dummy coded variable (if targetVector = "binary"). Otherwise, first column must contain real number vector corresponding to selection variable (if targetVector = "nonbinary"). All other columns contain relevant markers.
@@ -270,6 +305,14 @@ calf_exact_binary_subset <- function(data,
                         times      = 1,
                         optimize = "pval",
                         verbose = FALSE){
+    if (length(nCase) != 1L || length(nControl) != 1L ||
+        !is.finite(nCase) || !is.finite(nControl) ||
+        nCase != as.integer(nCase) || nControl != as.integer(nControl) ||
+        nCase < 2L || nControl < 2L)
+      stop("CALF ERROR: nCase and nControl must be integers of at least two.")
+    if (length(times) != 1L || !is.finite(times) ||
+        times != as.integer(times) || times < 1L)
+      stop("CALF ERROR: times must be a positive integer.")
   
     targetVector = "binary"
     proportion = 1
@@ -278,6 +321,8 @@ calf_exact_binary_subset <- function(data,
     #Determine which is case and which is control
     ctrlRows  <- which(data[ ,1] == 0)
     caseRows  <- which(data[ ,1] == 1)
+    if (nControl > length(ctrlRows) || nCase > length(caseRows))
+      stop("CALF ERROR: Requested cases or controls exceed available observations.")
 
     auc        <- numeric()
     allMarkers <- character()
@@ -287,8 +332,8 @@ calf_exact_binary_subset <- function(data,
     repeat {
       
       #Resample the binary data, thus controlling the randomization here.
-      keepRows  <- c(sample(ctrlRows)[1:nControl], sample(caseRows)[1:nCase])
-      resampledData <- data[keepRows, ]
+      keepRows <- c(sample(ctrlRows, nControl), sample(caseRows, nCase))
+      resampledData <- data[keepRows, , drop = FALSE]
       
       
       out <- calf_internal(resampledData,
@@ -371,6 +416,7 @@ calf_exact_binary_subset <- function(data,
 #'}
 #'@export
 cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize = "pval", outputPath=NULL) {
+  validate_cv_inputs(data, limit, proportion, times, targetVector, optimize, outputPath)
   
   if (targetVector != "binary" && targetVector != "nonbinary") {
     cat('CALF ERROR: Invalid targetVector argument.  Only "binary" or "nonbinary" is allowed.')
@@ -425,43 +471,43 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       if (targetVector == "binary") {
         
         #Resample the binary data, keeping track of what was included and what was not.
-        keepCtrlRows <- sample(ctrlRows)[1:nCtrlKeep]
+        keepCtrlRows <- sample(ctrlRows, nCtrlKeep)
         unkeptCtrlRows <- setdiff(union(ctrlRows,keepCtrlRows), intersect(ctrlRows,keepCtrlRows))
         
-        keepCaseRows <- sample(caseRows)[1:nCaseKeep]
+        keepCaseRows <- sample(caseRows, nCaseKeep)
         unkeptCaseRows <- setdiff(union(caseRows,keepCaseRows), intersect(caseRows,keepCaseRows))
         
         keepRows  <- c(keepCtrlRows, keepCaseRows)
         unkeptRows <- c(unkeptCtrlRows, unkeptCaseRows)
         
-        unkeptCaseData <- data[unkeptCaseRows, ]
-        unkeptCtrlData <- data[unkeptCtrlRows, ]
+        unkeptCaseData <- data[unkeptCaseRows, , drop = FALSE]
+        unkeptCtrlData <- data[unkeptCtrlRows, , drop = FALSE]
         
-        resampledData <- data[keepRows, ]
-        unkeptData <- data[unkeptRows, ]
+        resampledData <- data[keepRows, , drop = FALSE]
+        unkeptData <- data[unkeptRows, , drop = FALSE]
         
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "binaryKept.csv")
+          outputFile <- file.path(outputPath, "binaryKept.csv")
           fwrite(resampledData, outputFile)
           
           
-          outputFile <- paste(outputPath, "binaryUnkept.csv")
+          outputFile <- file.path(outputPath, "binaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
       } else if(targetVector == "nonbinary"){
         
         #Resample the nonbinary data
-        keepRows  <- sample(1:nrow(data))[1:nDataKeep]
+        keepRows  <- sample(seq_len(nrow(data)), nDataKeep)
         unkeptRows <- setdiff(seq(1, length(data[,1]), by=1), keepRows)
-        resampledData <- data[keepRows, ]
-        unkeptData <- data[unkeptRows, ]
+        resampledData <- data[keepRows, , drop = FALSE]
+        unkeptData <- data[unkeptRows, , drop = FALSE]
       
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "nonbinaryKept.csv")
+          outputFile <- file.path(outputPath, "nonbinaryKept.csv")
           fwrite(resampledData, outputFile)
           
-          outputFile <- paste(outputPath, "nonbinaryUnkept.csv")
+          outputFile <- file.path(outputPath, "nonbinaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
@@ -513,27 +559,30 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
       if (targetVector == "binary") {
         if (optimize == "pval") {
           header <- c("Number Selected", "AUC", "pval", colnames(data)[-1])
-          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-3]))
+          weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+            matrix(results[rowCount, -(1:3)], ncol = 1)
   
-          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+          resultCtrlData <- weightsTimesUnkept[seq_len(nrow(unkeptCtrlData))]
+          resultCaseData <- weightsTimesUnkept[nrow(unkeptCtrlData) + seq_len(nrow(unkeptCaseData))]
   
           #optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
           optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
           
         } else if (optimize == "auc"){
-          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-2]))
+          weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+            matrix(results[rowCount, -(1:2)], ncol = 1)
       
-          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+          resultCtrlData <- weightsTimesUnkept[seq_len(nrow(unkeptCtrlData))]
+          resultCaseData <- weightsTimesUnkept[nrow(unkeptCtrlData) + seq_len(nrow(unkeptCaseData))]
       
           optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
             
         }
       } else if (targetVector == "nonbinary"){
       
-        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(results[rowCount,-1:-2])
-        corrResult <- cor(weightsTimesUnkept,unkeptData[1])
+        weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+          matrix(results[rowCount, -(1:2)], ncol = 1)
+        corrResult <- cor(as.vector(weightsTimesUnkept), unkeptData[[1]])
         correlationList <- append(correlationList,corrResult )
       }
     
@@ -553,21 +602,21 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
     #Write the results
     if (targetVector == "binary") {
       
-      outputFile <- paste(outputPath, "binary.csv")
+      outputFile <- file.path(outputPath, "binary.csv")
       fwrite(results, outputFile)
       
-      outputFile <- paste(outputPath, paste(optimize,"KeptList.txt", sep=""))
+      outputFile <- file.path(outputPath, paste0(optimize, "KeptList.txt"))
       write(optimizedKeptList, outputFile, sep="\n")
       
-      outputFile <- paste(outputPath, "AUCUnkeptList.txt")
+      outputFile <- file.path(outputPath, "AUCUnkeptList.txt")
       write(optimizedUnkeptList, outputFile, sep="\n")
       
     } else if(targetVector == "nonbinary"){
       
-      outputFile <- paste(outputPath, "nonbinary.csv")
+      outputFile <- file.path(outputPath, "nonbinary.csv")
       fwrite(results, outputFile)
       
-      outputFile <- paste(outputPath, "corrUnkeptList.txt")
+      outputFile <- file.path(outputPath, "corrUnkeptList.txt")
       write(correlationList, outputFile, sep="\n")
       
     }
@@ -602,6 +651,7 @@ cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize 
 #'}
 #'@export
 perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVector, optimize = "pval", outputPath=NULL) {
+  validate_cv_inputs(data, limit, proportion, times, targetVector, optimize, outputPath)
   
   if (targetVector != "binary" && targetVector != "nonbinary") {
     cat('CALF ERROR: Invalid targetVector argument.  Only "binary" or "nonbinary" is allowed.')
@@ -659,53 +709,47 @@ perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVecto
         
         #Resample the binary data, keeping track of what was included and what was not.
         
-        shuffledCtrl = ctrlRows
-        shuffledCtrl[,1] = sample(shuffledCtrl[,1])
-        
-        keepCtrlRows <- sample(shuffledCtrl)[1:nCtrlKeep]
-        unkeptCtrlRows <- setdiff(union(shuffledCtrl,keepCtrlRows), intersect(shuffledCtrl,keepCtrlRows))
+        keepCtrlRows <- sample(ctrlRows, nCtrlKeep)
+        unkeptCtrlRows <- setdiff(ctrlRows, keepCtrlRows)
         
         
-        shuffledCase = caseRows
-        shuffledCase[,1] = sample(shuffledCase[,1])
-        keepCaseRows <- sample(shuffledCase)[1:nCaseKeep]
-        unkeptCaseRows <- setdiff(union(shuffledCase,keepCaseRows), intersect(shuffledCase,keepCaseRows))
+        keepCaseRows <- sample(caseRows, nCaseKeep)
+        unkeptCaseRows <- setdiff(caseRows, keepCaseRows)
         
         keepRows  <- c(keepCtrlRows, keepCaseRows)
         unkeptRows <- c(unkeptCtrlRows, unkeptCaseRows)
         
-        unkeptCaseData <- data[unkeptCaseRows, ]
-        unkeptCtrlData <- data[unkeptCtrlRows, ]
+        unkeptCaseData <- data[unkeptCaseRows, , drop = FALSE]
+        unkeptCtrlData <- data[unkeptCtrlRows, , drop = FALSE]
         
-        resampledData <- data[keepRows, ]
-        unkeptData <- data[unkeptRows, ]
+        resampledData <- data[keepRows, , drop = FALSE]
+        unkeptData <- data[unkeptRows, , drop = FALSE]
+        # Permute training labels; holdout labels remain the ground truth.
+        resampledData[, 1] <- sample(resampledData[, 1])
         
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "binaryKept.csv")
+          outputFile <- file.path(outputPath, "binaryKept.csv")
           fwrite(resampledData, outputFile)
           
           
-          outputFile <- paste(outputPath, "binaryUnkept.csv")
+          outputFile <- file.path(outputPath, "binaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
       } else if(targetVector == "nonbinary"){
         
-        shuffledData = data
-        
-        shuffledData[,1] = sample(shuffledData[,1])
-        
-        keepRows  <- sample(1:nrow(shuffledData))[1:nDataKeep]
-        unkeptRows <- setdiff(seq(1, length(shuffledData[,1]), by=1), keepRows)
-        
-        resampledData <- shuffledData[keepRows, ]
-        unkeptData <- shuffledData[unkeptRows, ]
+        keepRows  <- sample(seq_len(nrow(data)), nDataKeep)
+        unkeptRows <- setdiff(seq_len(nrow(data)), keepRows)
+
+        resampledData <- data[keepRows, , drop = FALSE]
+        unkeptData <- data[unkeptRows, , drop = FALSE]
+        resampledData[, 1] <- sample(resampledData[, 1])
         
         if(!is.null(outputPath)) {
-          outputFile <- paste(outputPath, "nonbinaryKept.csv")
+          outputFile <- file.path(outputPath, "nonbinaryKept.csv")
           fwrite(resampledData, outputFile)
           
-          outputFile <- paste(outputPath, "nonbinaryUnkept.csv")
+          outputFile <- file.path(outputPath, "nonbinaryUnkept.csv")
           fwrite(unkeptData, outputFile)
         }
         
@@ -757,27 +801,30 @@ perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVecto
       if (targetVector == "binary") {
         if (optimize == "pval") {
           header <- c("Number Selected", "AUC", "pval", colnames(data)[-1])
-          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-3]))
+          weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+            matrix(results[rowCount, -(1:3)], ncol = 1)
           
-          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+          resultCtrlData <- weightsTimesUnkept[seq_len(nrow(unkeptCtrlData))]
+          resultCaseData <- weightsTimesUnkept[nrow(unkeptCtrlData) + seq_len(nrow(unkeptCaseData))]
           
           #optimizedUnkeptList<-append(optimizedUnkeptList, t.test(resultCaseData, resultCtrlData, var.equal = FALSE)$p.value)
           optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
           
         } else if (optimize == "auc"){
-          weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-2]))
+          weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+            matrix(results[rowCount, -(1:2)], ncol = 1)
           
-          resultCtrlData = weightsTimesUnkept[1:length(unkeptCtrlData[,1])]
-          resultCaseData = weightsTimesUnkept[length(unkeptCtrlData[,1])+1:length(unkeptCaseData[,1])]
+          resultCtrlData <- weightsTimesUnkept[seq_len(nrow(unkeptCtrlData))]
+          resultCaseData <- weightsTimesUnkept[nrow(unkeptCtrlData) + seq_len(nrow(unkeptCaseData))]
           
           optimizedUnkeptList<-append(optimizedUnkeptList, compute.auc(resultCaseData, resultCtrlData))
           
         }
       } else if (targetVector == "nonbinary"){
         
-        weightsTimesUnkept<-as.matrix(unkeptData[-1]) %*% t(as.matrix(results[rowCount,-1:-2]))
-        corrResult <- cor(weightsTimesUnkept,unkeptData[1])
+        weightsTimesUnkept <- as.matrix(unkeptData[, -1, drop = FALSE]) %*%
+          matrix(results[rowCount, -(1:2)], ncol = 1)
+        corrResult <- cor(as.vector(weightsTimesUnkept), unkeptData[[1]])
         correlationList <- append(correlationList,corrResult )
       }
       
@@ -797,21 +844,21 @@ perm_target_cv.calf <- function(data, limit, proportion = .8, times, targetVecto
     #Write the results
     if (targetVector == "binary") {
       
-      outputFile <- paste(outputPath, "binary.csv")
+      outputFile <- file.path(outputPath, "binary.csv")
       fwrite(results, outputFile)
       
-      outputFile <- paste(outputPath, paste(optimize,"KeptList.txt", sep=""))
+      outputFile <- file.path(outputPath, paste0(optimize, "KeptList.txt"))
       write(optimizedKeptList, outputFile, sep="\n")
       
-      outputFile <- paste(outputPath, "AUCUnkeptList.txt")
+      outputFile <- file.path(outputPath, "AUCUnkeptList.txt")
       write(optimizedUnkeptList, outputFile, sep="\n")
       
     } else if(targetVector == "nonbinary"){
       
-      outputFile <- paste(outputPath, "nonbinary.csv")
+      outputFile <- file.path(outputPath, "nonbinary.csv")
       fwrite(results, outputFile)
       
-      outputFile <- paste(outputPath, "corrUnkeptList.txt")
+      outputFile <- file.path(outputPath, "corrUnkeptList.txt")
       write(correlationList, outputFile, sep="\n")
       
     }
@@ -874,7 +921,8 @@ write.calf <- function(x, filename){
 #'@param filename The output filename
 #'@export
 write.calf_randomize <- function(x, filename){
-  
+  oldWarn <- getOption("warn")
+  on.exit(options(warn = oldWarn), add = TRUE)
   options(warn=-1)
   
   write.table(x$selection,
@@ -930,8 +978,6 @@ write.calf_randomize <- function(x, filename){
                  append = TRUE)
   }
   
-  options(warn=1)
-  
 }
 
 
@@ -944,7 +990,8 @@ write.calf_randomize <- function(x, filename){
 #'@param filename The output filename
 #'@export
 write.calf_subset <- function(x, filename){
-  
+  oldWarn <- getOption("warn")
+  on.exit(options(warn = oldWarn), add = TRUE)
   options(warn=-1)
   
   write.table(x$selection,
@@ -999,8 +1046,6 @@ write.calf_subset <- function(x, filename){
                  sep = ",",
                  append = TRUE)
   }
-  
-  options(warn=1)
   
 }
 

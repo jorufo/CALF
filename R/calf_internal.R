@@ -1,3 +1,19 @@
+calf_score <- function(target, values, targetVector, optimize) {
+  if (targetVector == "nonbinary") {
+    value <- suppressWarnings(cor(target, values))
+    return(if (is.finite(value) && value > 0) 1 / value else Inf)
+  }
+  caseVar <- values[target == 1]
+  ctrlVar <- values[target == 0]
+  if (optimize == "auc") {
+    value <- compute.auc(caseVar, ctrlVar)
+    return(if (is.finite(value) && value > 0) 1 / value else Inf)
+  }
+  value <- tryCatch(suppressWarnings(t.test(caseVar, ctrlVar)$p.value),
+                    error = function(e) NA_real_)
+  if (is.finite(value)) value else Inf
+}
+
 calf_internal <- function(data,
                           nMarkers,
                           randomize  = FALSE,
@@ -18,13 +34,25 @@ calf_internal <- function(data,
       optimize <- NULL
   
   # setting up some initial values -----------------------------------#
-  if (any(apply(data, 2, is.numeric) == FALSE)) {
+  if ((!is.data.frame(data) && !is.matrix(data)) || ncol(data) < 2L ||
+      nrow(data) < 3L || any(!vapply(as.data.frame(data), is.numeric, logical(1)))) {
     stop("CALF ERROR: Data are not numeric. Please check that data were read in correctly.")
   }
+  if (anyNA(data) || any(!is.finite(as.matrix(data))))
+    stop("CALF ERROR: Data must contain only finite, non-missing values.")
+  if (length(nMarkers) != 1L || !is.finite(nMarkers) ||
+      nMarkers != as.integer(nMarkers) || nMarkers < 1L)
+    stop("CALF ERROR: nMarkers must be a positive integer.")
+  if (length(targetVector) != 1L || !targetVector %in% c("binary", "nonbinary"))
+    stop("CALF ERROR: targetVector must be 'binary' or 'nonbinary'.")
+  if (targetVector == "binary" && !all(data[, 1] %in% c(0, 1)))
+    stop("CALF ERROR: Binary targets must contain only zero and one.")
+  if (targetVector == "binary" && !optimize %in% c("pval", "auc"))
+    stop("CALF ERROR: Binary optimize must be 'pval' or 'auc'.")
   
   
   nVars <- ncol(data) - 1
-  dNeg  <- data[ ,2:ncol(data)]
+  dNeg  <- data[ ,2:ncol(data), drop = FALSE]
   dNeg  <- dNeg * - 1
   data  <- data.frame(data, dNeg, check.names = FALSE)
   
@@ -36,6 +64,10 @@ calf_internal <- function(data,
   if (randomize == TRUE) data[ ,1] <- sample(data[ ,1])
   
   if (!is.null(proportion)) {
+    if (length(proportion) < 1L || length(proportion) > 2L ||
+        any(!is.finite(proportion)) || any(proportion <= 0 | proportion > 1) ||
+        (targetVector == "nonbinary" && length(proportion) != 1L))
+      stop("CALF ERROR: Invalid sampling proportion.")
     
     if (targetVector == "binary") {
       
@@ -57,53 +89,46 @@ calf_internal <- function(data,
       }
       
       # sample randomly rows of case and control to keep, record rows to keep
-      keepRows  <- c(sample(ctrlRows)[1:nCtrlKeep], sample(caseRows)[1:nCaseKeep])
+      if (min(nCtrlKeep, nCaseKeep) < 2L)
+        stop("CALF ERROR: At least two cases and controls must be retained.")
+      keepRows <- c(sample(ctrlRows, nCtrlKeep), sample(caseRows, nCaseKeep))
       
       # subset original data to keep these rows
-      data      <- data[keepRows, ]
+      data      <- data[keepRows, , drop = FALSE]
       
     } else {
       
       nDataKeep <- round(nrow(data)*proportion, digits = 0)
-      keepRows  <- sample(1:nrow(data))[1:nDataKeep]
-      data      <- data[keepRows, ]
+      if (nDataKeep < 3L)
+        stop("CALF ERROR: At least three observations must be retained.")
+      keepRows <- sample(seq_len(nrow(data)), nDataKeep)
+      data <- data[keepRows, , drop = FALSE]
       
     }
     
   }
   
   real  <- data[ ,1]
-  realMarkers <- data[ , 2:ncol(data)]
-  ctrl  <- data[data[ ,1] == 0, 2:ncol(data)]
-  case  <- data[data[ ,1] == 1, 2:ncol(data)]
+  realMarkers <- data[ , 2:ncol(data), drop = FALSE]
+  ctrl  <- data[data[ ,1] == 0, 2:ncol(data), drop = FALSE]
+  case  <- data[data[ ,1] == 1, 2:ncol(data), drop = FALSE]
+  if (targetVector == "binary" && (nrow(ctrl) < 2L || nrow(case) < 2L))
+    stop("CALF ERROR: At least two cases and two controls are required.")
   indexNegPos <- rep(0, (nVars*2))
   # end of setting up some initial values ----------------------------#
   
   # initial loop to establish first optimal marker -------------------#
   allCrit <- numeric()
   for (i in 1:(nVars*2)){
-    if (targetVector == "binary"){
-      caseVar    <- case[ ,i]
-      ctrlVar    <- ctrl[ ,i]
-      if (optimize == "pval"){
-        crit       <- t.test(caseVar, ctrlVar, var.equal = FALSE)$p.value
-      } else if (optimize == "auc"){
-        crit <- compute.auc(caseVar, ctrlVar)
-        crit <- 1/crit
-      }
-    } else {
-      realVar <- realMarkers[ ,i]
-      crit    <- suppressWarnings(cor(real, realVar, use = "complete.obs"))
-      crit    <- 1/crit
-    }
-    allCrit[i] <- crit
+    allCrit[i] <- calf_score(real, realMarkers[, i], targetVector, optimize)
   }
-  allCrit[allCrit < 0] <- NA
+  if (!any(is.finite(allCrit)))
+    stop("CALF ERROR: No marker has a valid optimization score.")
   
   # end of initial loop ----------------------------------------------#
   
   keepMarkers  <- names(realMarkers)[which.min(allCrit)]
-  bestCrit     <- min(allCrit, na.rm = TRUE)
+  bestCrit     <- min(allCrit)
   keepIndex    <- which.min(allCrit)
   
   if (verbose == TRUE) {
@@ -138,17 +163,7 @@ calf_internal <- function(data,
           caseVar <- casePrev + case[ ,i]
           ctrlVar <- ctrlPrev + ctrl[ ,i]
           realVar <- realPrev + realMarkers[ ,i]
-          if (targetVector == "binary"){
-            if (optimize == "pval"){
-              crit       <- t.test(caseVar, ctrlVar, var.equal = FALSE)$p.value
-            } else if (optimize == "auc"){
-              crit <- compute.auc(caseVar, ctrlVar)
-              crit <- 1/crit
-            }
-          } else {
-            crit <- suppressWarnings(cor(real, realVar, use = "complete.obs"))
-            crit <- 1/crit
-          }
+          crit <- calf_score(real, realVar, targetVector, optimize)
         } else {
           crit <- NA
         }
@@ -158,17 +173,7 @@ calf_internal <- function(data,
           caseVar <- casePrev + case[ ,i]
           ctrlVar <- ctrlPrev + ctrl[ ,i]
           realVar <- realPrev + realMarkers[ ,i]
-          if (targetVector == "binary"){
-            if (optimize == "pval"){
-              crit       <- t.test(caseVar, ctrlVar, var.equal = FALSE)$p.value
-            } else if (optimize == "auc"){
-              crit <- compute.auc(caseVar, ctrlVar)
-              crit <- 1/crit
-            }
-          } else {
-            crit <- suppressWarnings(cor(real, realVar, use = "complete.obs"))
-            crit <- 1/crit
-          }
+          crit <- calf_score(real, realVar, targetVector, optimize)
         } else {
           crit <- NA
         }
@@ -179,10 +184,9 @@ calf_internal <- function(data,
     }
     # end of second loop ----------------------------------------------#
     
-    allCrit[allCrit < 0] <- NA
-    
-    # check if the latest p is lower than the previous p               #
-    continue <- ifelse(bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE), TRUE, FALSE)
+    # An absent valid candidate is a normal termination condition.
+    continue <- any(is.finite(allCrit)) &&
+      bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE)
     
     
     if (continue == TRUE){
@@ -215,26 +219,16 @@ calf_internal <- function(data,
     # loop for third through nMarker ----------------------------------#
     while (continue == TRUE){
       allCrit  <- numeric()
-      casePrev <- rowSums(case[ ,keepIndex], na.rm = TRUE)
-      ctrlPrev <- rowSums(ctrl[ ,keepIndex], na.rm = TRUE)
-      realPrev <- rowSums(realMarkers[ ,keepIndex], na.rm = TRUE)
+      casePrev <- rowSums(case[ ,keepIndex, drop = FALSE])
+      ctrlPrev <- rowSums(ctrl[ ,keepIndex, drop = FALSE])
+      realPrev <- rowSums(realMarkers[ ,keepIndex, drop = FALSE])
       for (i in 1:(nVars*2)){
         if( i >= 1 && i <= nVars ) {
           if ( !(i %in% keepIndex) && !((nVars+i) %in% keepIndex) ){
             caseVar <- casePrev + case[ ,i]
             ctrlVar <- ctrlPrev + ctrl[ ,i]
             realVar <- realPrev + realMarkers[ ,i]
-            if (targetVector == "binary"){
-              if (optimize == "pval"){
-                crit       <- t.test(caseVar, ctrlVar, var.equal = FALSE)$p.value
-              } else if (optimize == "auc"){
-                crit <- compute.auc(caseVar, ctrlVar)
-                crit <- 1/crit
-              }
-            } else {
-              crit <- suppressWarnings(cor(real, realVar, use = "complete.obs"))
-              crit <- 1/crit
-            }
+              crit <- calf_score(real, realVar, targetVector, optimize)
           } else {
             crit <- NA
           }
@@ -243,17 +237,7 @@ calf_internal <- function(data,
             caseVar <- casePrev + case[ ,i]
             ctrlVar <- ctrlPrev + ctrl[ ,i]
             realVar <- realPrev + realMarkers[ ,i]
-            if (targetVector == "binary"){
-              if (optimize == "pval"){
-                crit       <- t.test(caseVar, ctrlVar, var.equal = FALSE)$p.value
-              } else if (optimize == "auc"){
-                crit <- compute.auc(caseVar, ctrlVar)
-                crit <- 1/crit
-              }
-            } else {
-              crit <- suppressWarnings(cor(real, realVar, use = "complete.obs"))
-              crit <- 1/crit
-            }
+              crit <- calf_score(real, realVar, targetVector, optimize)
           } else {
             crit <- NA
           }
@@ -263,10 +247,8 @@ calf_internal <- function(data,
         
         allCrit[i] <- crit
       }
-      allCrit[allCrit < 0] <- NA
-      
-      continue <- ifelse(bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE),
-                         TRUE, FALSE)
+      continue <- any(is.finite(allCrit)) &&
+        bestCrit[length(bestCrit)] > min(allCrit, na.rm = TRUE)
 
       if (continue == TRUE){
         keepMarkers  <- append(keepMarkers, names(realMarkers)[which.min(allCrit)])
@@ -310,64 +292,33 @@ calf_internal <- function(data,
   ## AUC -------------------------------------------------------------#
   # create function value for each individual
   if (targetVector == "binary"){
-    if (nMarkers != 1 & length(keepIndex) != 1){
-      funcValue   <- c(rowSums(case[,c(keepIndex)]), rowSums(ctrl[,c(keepIndex)]))
-    } else {
-      funcValue   <- c(case[,c(keepIndex)], ctrl[,c(keepIndex)])
-    }
-    funcValue <- round(funcValue, digits = 8)
-    # rank individual function values
-    ranks       <- rank(funcValue, ties.method = "average")
-    seqCaseCtrl <- c(rep(1, nrow(case)), rep(0, nrow(ctrl)))
-    
-    # set up plot -----------------------------------------------------#
-    all <- data.frame(funcValue,
-                      seqCaseCtrl,
-                      ranks)
-    all <- all[order(all$ranks),]
-    all$refx <- seq(0,1,1/(nrow(all)-1))
-    all$refy <- seq(0,1,1/(nrow(all)-1))
-    initVal  <- all$seqCaseCtrl[1]
-    moveRight <- ifelse(initVal == 0, nrow(case), nrow(ctrl))
-    moveUp    <- ifelse(initVal == 0, nrow(ctrl), nrow(case))
-    # moveLeft
-    for (i in 2:nrow(all)){
-      all$x[1] <- 0
-      all$y[1] <- 0
-      if (all$seqCaseCtrl[i] == initVal){
-        all$x[i] = all$x[i-1]
-        all$y[i] = all$y[i-1] + 1/(moveUp-1)
-      } else {
-        all$x[i] = all$x[i-1] + 1/(moveRight)
-        all$y[i] = all$y[i-1]
-      }
-    }
-    
-    # if the plot prints upside-down, switch values for
-    # x and y
-    n <- round(length(all$refy)/2, digits = 0)
-    if (all$refy[n] > all$y[n]){
-      all$a <- all$x
-      all$b <- all$y
-      all$x <- all$b
-      all$y <- all$a
-    }
-    
-    rocPlot <- ggplot(all, aes(x = x, y = y)) +
-      geom_line(size = 1) +
-      geom_line(aes(x = refx, y = refy, colour = "red"), size = 1.5) +
-      scale_x_continuous(limits = c(0,1)) +
+    scores <- round(rowSums(realMarkers[, keepIndex, drop = FALSE]), 8)
+    labels <- data[, 1]
+    auc <- compute.auc(scores[labels == 1], scores[labels == 0])
+    # CALF reports the better of both score orientations.
+    ranks <- rank(round(scores, 8), ties.method = "average")
+    ncase <- sum(labels == 1)
+    nctrl <- sum(labels == 0)
+    caseAuc <- (sum(ranks[labels == 1]) - ncase * (ncase + 1) / 2) /
+      (ncase * nctrl)
+    if (caseAuc < 0.5) scores <- -scores
+    ord <- order(scores, decreasing = TRUE)
+    orderedScores <- scores[ord]
+    orderedLabels <- labels[ord]
+    # Tied observations enter at the same threshold.
+    lastOfTie <- !duplicated(orderedScores, fromLast = TRUE)
+    rocData <- data.frame(
+      x = c(0, cumsum(orderedLabels == 0)[lastOfTie] / nctrl),
+      y = c(0, cumsum(orderedLabels == 1)[lastOfTie] / ncase)
+    )
+    rocPlot <- ggplot(rocData, aes(x = x, y = y)) +
+      geom_step(linewidth = 1) +
+      geom_abline(intercept = 0, slope = 1, colour = "red", linewidth = 1.5) +
+      scale_x_continuous(limits = c(0, 1)) +
+      scale_y_continuous(limits = c(0, 1)) +
       theme_bw() +
-      theme(legend.position = "none") +
       ylab("True Positive Rate (Sensitivity)") +
       xlab("False Positive Rate (1 - Specificity)")
-    # set up plot -----------------------------------------------------#
-    
-    # compute arguments for AUC
-    caseFunc  <- sum(ranks[1:nrow(case)]) - nrow(case)*(nrow(case)+1)/2
-    ctrlFunc  <- sum(ranks[(nrow(case)+1):length(ranks)]) - nrow(ctrl)*(nrow(ctrl)+1)/2
-    # compute AUC
-    auc       <- round(max(ctrlFunc, caseFunc)/(caseFunc + ctrlFunc), digits = 4)
   } else {
     auc     <- NULL
     rocPlot <- NULL
